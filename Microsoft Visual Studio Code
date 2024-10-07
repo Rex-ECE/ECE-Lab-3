@@ -1,0 +1,148 @@
+//This is the code for the Microsoft Visual Studio Methods
+
+C#:
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Net;
+
+namespace Test_9_5_24
+{
+    public partial class Form1 : Form //This is the main form
+    {
+        int startflag = 0; //Flag that manages start state
+        int flag_sensor; //Flag that determines state of sensor based on data it recieves
+        string RxString; //Holds a string value recieved from serial port
+        string temp = "30"; //This is the default temperature string, which was close to my values that I receieved from the internal and external temperature sensors.
+
+        public Form1() //This is the constructor
+        {
+            InitializeComponent();
+        }
+
+        private void button1_Click(object sender, EventArgs e) //This method is called when button1 is clicked. It sets the serial port parameters up and opens the port. It also allows editing to textBox1, if the port is opened.
+        {
+            serialPort1.PortName = "COM4";
+            serialPort1.BaudRate = 115200;
+
+            serialPort1.Open();
+            if (serialPort1.IsOpen)
+            {
+                // startSerial.Enabled = false;
+                // serialStop.Enabled = true;
+                textBox1.ReadOnly = false;
+            }
+
+        }
+
+        private void Stop_Click(object sender, EventArgs e) //This method is called when the button has stopped being clicked. This closes the serial port opened by button1_Click and makes textBox1 back to read only.
+        {
+            serialPort1.Close();
+            //  startSerial.Enabled = true;
+            //  serialStop.Enabled = false;
+            textBox1.ReadOnly = true;
+
+        }
+
+        private void Form1_Load(object sender, EventArgs e) //This method is called when Form1 is loaded. It also checks that the serial port is closed.
+        {
+            if (serialPort1.IsOpen)
+                serialPort1.Close();
+
+            serialPort1.PortName = "COM4";
+            serialPort1.BaudRate = 115200;
+        }
+
+
+        private void textBox1_TextChanged(object sender, EventArgs e) //This is an empty method to handle changes to textBox1. In my code, I added something here to enable it, but I cannot remember what I wrote.
+        {
+
+        }
+
+        private void label1_Click(object sender, EventArgs e) //This is another empty method meant for when you click on the label.
+        {
+
+        }
+
+        private void Current_data_Click(object sender, EventArgs e) //This method is called to transfer the recieved data from RxString to textBox1
+        {
+            textBox1.AppendText(RxString);
+        }
+
+
+        private void SerialPort1_DataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e) //This method is called when data is recieved on the serial port. When the data is recieved, it reads it and stores it in RxString. It also uses the method "Invoke" to check Current_data_Click is called.
+        {
+
+            RxString = serialPort1.ReadExisting();
+            this.Invoke(new EventHandler(Current_data_Click));
+
+
+        }
+
+        private void timer1_Tick_Tick(object sender, EventArgs e) //This method is called at regular intervals of the timer, which are seen in the thingspeak graph in the results section. 
+        {
+            if (!string.Equals(textBox1.Text, ""))
+            {
+                if (serialPort1.IsOpen) serialPort1.Close();
+                try
+                {
+                     if (RxString[0] == 'B')
+                      {
+                          flag_sensor = 10;
+
+                      }
+
+                    const string WRITEKEY = "S0G72DJK4L2KVBY8";
+                    string strUpdateBase = "http://api.thingspeak.com/update";
+
+
+                    string strUpdateURI = strUpdateBase + "?api_key=" + WRITEKEY;
+                    string strField1 = textBox1.Text;
+      
+                    HttpWebRequest ThingsSpeakReq;
+                    HttpWebResponse ThingsSpeakResp;
+
+                    if (flag_sensor == 10)
+                    {
+
+                        strUpdateURI += "&field4=" + strField1;
+                        flag_sensor = 10;
+                    }
+
+
+
+                    ThingsSpeakReq = (HttpWebRequest)WebRequest.Create(strUpdateURI);
+                    ThingsSpeakResp = (HttpWebResponse)ThingsSpeakReq.GetResponse();
+                    ThingsSpeakResp.Close();
+
+                    if (!(string.Equals(ThingsSpeakResp.StatusDescription, "OK")))
+                    {
+                        Exception exData = new Exception(ThingsSpeakResp.StatusDescription);
+                        throw exData;
+                    }
+
+                }
+                catch (Exception ex)
+                {
+
+                }
+                textBox1.Text = "";
+
+
+                serialPort1.Open();
+            }
+
+
+
+
+
+
+        }
+    }
+}
