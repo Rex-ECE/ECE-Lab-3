@@ -1,4 +1,4 @@
-This is the code for the Code Composer Studio. This allows the methods to work after being coded. This is put into the IDE.
+//This is the code for the Code Composer Studio. This allows the methods to work after being coded. This is put into the IDE.
 
 CCS:
 #include <msp430.h>
